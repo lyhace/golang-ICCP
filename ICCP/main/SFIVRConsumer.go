@@ -26,7 +26,6 @@ var (
 	lifetimeSFIVRConsumer     = flag.Duration("lifetimeSFIVRConsumer", 0*time.Second, "lifetime of process before shutdown (0s=infinite)")
 	//生成要访问的url
 	noticeUrl = "http://sfivrnotice:15407/CTDNOTICE/CTD?mac="
-	//noticeUrl = "http://172.16.35.147:32318/SFIVRRequest?mac="
 	//消费日志
 	logFileName = "/home/smp/logs/SFIVRConsumer_" + time.Now().Format("2006-01-02") + ".log"
 	//logFileName = "SFIVRPublish_" + time.Now().Format("2006-01-02") + ".log"
