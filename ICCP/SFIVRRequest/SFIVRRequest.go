@@ -24,8 +24,7 @@ var (
 	exchangeNameSFIVRRequest = flag.String("exchangeSFIVRRequest", "iccprequest", "Durable AMQP exchange name")
 	exchangeTypeSFIVRRequest = flag.String("exchange-typeSFIVRRequest", "direct", "Exchange type - direct|fanout|topic|x-custom")
 	routingKeySFIVRRequest   = flag.String("keySFIVRRequest", "SFIVRRequest", "AMQP routing key")
-	//producerMsg  = flag.String("producerMsg", " {\"header\":{\"messageId\":\"1827\",\"serviceName\":\"SFIVRRequest\"},\"body\":{\"mediaContent\":\"深圳市罗-湖区文锦北路1081号田贝花园\",\"numCode\":\"9014\",\"displayNum\":\"9533885\",\"calledNum\":\"15159961793\"}}", "Body of message")
-	reliableSFIVRRequest = flag.Bool("reliableSFIVRRequest", true, "Wait for the publisher confirmation before exiting")
+	reliableSFIVRRequest     = flag.Bool("reliableSFIVRRequest", true, "Wait for the publisher confirmation before exiting")
 	//请求日志
 	logFileName = "/home/smp/logs/SFIVRPublish_" + time.Now().Format("2006-01-02") + ".log"
 	//logFileName = "SFIVRPublish_" + time.Now().Format("2006-01-02") + ".log"

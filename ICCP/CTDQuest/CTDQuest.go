@@ -24,8 +24,7 @@ var (
 	exchangeNameCTDQuest = flag.String("exchangeCTDQuest", "iccprequest", "Durable AMQP exchange name")
 	exchangeTypeCTDQuest = flag.String("exchange-typeCTDQuest", "direct", "Exchange type - direct|fanout|topic|x-custom")
 	routingKeyCTDQuest   = flag.String("keyCTDQuest", "CTDQuestRequest", "AMQP routing key")
-	//producerMsg  = flag.String("producerMsg", " {\"header\":{\"messageId\":\"1827\",\"serviceName\":\"CTDQuestRequest\"},\"body\":{\"mediaContent\":\"深圳市罗-湖区文锦北路1081号田贝花园\",\"numCode\":\"9014\",\"displayNum\":\"9533885\",\"calledNum\":\"15159961793\"}}", "Body of message")
-	reliableCTDQuest = flag.Bool("reliableCTDQuest", true, "Wait for the publisher confirmation before exiting")
+	reliableCTDQuest     = flag.Bool("reliableCTDQuest", true, "Wait for the publisher confirmation before exiting")
 	//请求日志
 	logFileName = "/home/smp/logs/CTDQuestPublish_" + time.Now().Format("2006-01-02") + ".log"
 	//logFileName = "CTDQuestPublish_" + time.Now().Format("2006-01-02") + ".log"
