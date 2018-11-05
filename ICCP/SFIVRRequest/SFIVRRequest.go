@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -46,8 +47,8 @@ func checkErrs(err error) {
 }
 
 type RequestJson struct {
-	Body   RequestHeader `json:"header"`
-	Header RequestBody   `json:"body"`
+	Header   RequestHeader `json:"header"`
+	Body	RequestBody   `json:"body"`
 }
 
 type RequestHeader struct {
@@ -60,11 +61,12 @@ type RequestBody struct {
 	NumCode      string `json:"numCode"`
 	DisplayNum   string `json:"displayNum"`
 	CalledNum    string `json:"calledNum"`
+	RequestTime    string `json:"requestTime"`
 }
 
 type ResponseJson struct {
-	Body   ResponseHeader `json:"header"`
-	Header ResponseBody   `json:"body"`
+	Header   ResponseHeader `json:"header"`
+	Body	 ResponseBody   `json:"body"`
 }
 
 type ResponseHeader struct {
@@ -90,101 +92,112 @@ func RequestMQ(w http.ResponseWriter, r *http.Request) {
 			log.Println("json format error: ", err)
 		}
 
-		requestJsonStr, requestJsonErr := json.Marshal(requestJson)
+		requestJsonStrObj, requestJsonErr := json.Marshal(requestJson)
 		checkErrs(requestJsonErr)
-		log.Println("requestJsonStr: ", string(requestJsonStr))
+		// 二次校验剔除请求时间参数
+		requestJsonStr := strings.Replace(string(requestJsonStrObj), ",\"requestTime\":\"\"", "", -1)
+		requestJsonStr = strings.Replace(requestJsonStr, "\"requestTime\":\"\",", "", -1)
+		log.Println("requestJsonStr: ", requestJsonStr)
 
 		//将请求报文写入日志文件
 		var requestJsonBuffer bytes.Buffer
 		requestJsonBuffer.WriteString(time.Now().Format("2006-01-02 15:04:05"))
 		requestJsonBuffer.WriteString(" ")
-		requestJsonBuffer.WriteString(string(requestJsonStr))
+		requestJsonBuffer.WriteString(requestJsonStr)
 		go util.AppendToFile(logFileName, requestJsonBuffer.String())
 
 		var responseJson ResponseJson
-		responseJson.Header.Result = "0000"
-		responseJson.Header.Reason = "succ"
-		responseJson.Body.MessageId = requestJson.Body.MessageId
-		responseJson.Body.ServiceName = "IVRResponse"
+		responseJson.Body.Result = "0000"
+		responseJson.Body.Reason = "succ"
+		responseJson.Header.MessageId = requestJson.Header.MessageId
+		responseJson.Header.ServiceName = "IVRResponse"
 
 		// 获取URL里携带的mac值
+		var sfmac = ""
+		var cqtmac = ""
 		queryForm, err := url.ParseQuery(r.URL.RawQuery)
 		if err == nil && len(queryForm["mac"]) > 0 {
-
 			if queryForm["mac"][0] != "cqt1234" {
+				//除去空格和制表符等
+				reg := regexp.MustCompile("\\s*|\t|\r|\n")
+				requestJsonStr = reg.ReplaceAllString(requestJsonStr, "")
+				//fmt.Println("requestJsonStr=", requestJsonStr)
 				// 校验mac值是否正确
 				firstHash := sha256.New()
-				firstHash.Write([]byte(string(requestJsonStr)))
+				firstHash.Write([]byte(requestJsonStr))
 				firstHashStr := hex.EncodeToString(firstHash.Sum(nil))
 				firstHashStr += "3F6258C8ADB64B463C31D1A826CBDBF4"
-				fmt.Println("mac=", firstHashStr)
 				secondHash := sha256.New()
 				secondHash.Write([]byte(firstHashStr))
 				secondHashStr := hex.EncodeToString(secondHash.Sum(nil))
-				fmt.Println("mac=", secondHashStr)
 
 				if secondHashStr != queryForm["mac"][0] {
-					responseJson.Header.Result = "0001"
-					responseJson.Header.Reason = "mac is error"
+					responseJson.Body.Result = "0001"
+					responseJson.Body.Reason = "mac is error"
+					sfmac = queryForm["mac"][0]
+					cqtmac = secondHashStr
 				}
 				fmt.Println("getmac=", queryForm["mac"][0])
 			}
 
 		} else {
-			responseJson.Header.Result = "0001"
-			responseJson.Header.Reason = "mac is error"
+			responseJson.Body.Result = "0001"
+			responseJson.Body.Reason = "mac is error"
 		}
 
 		//判断serviceName是否正确
-		if requestJson.Body.ServiceName != "SFIVRRequest" {
-			responseJson.Header.Result = "0001"
-			responseJson.Header.Reason = "serviceName is error : " + requestJson.Body.ServiceName
+		if requestJson.Header.ServiceName != "SFIVRRequest" {
+			responseJson.Body.Result = "0001"
+			responseJson.Body.Reason = "serviceName is error : " + requestJson.Header.ServiceName
 		}
 
 		//判断messageId是否为空
-		if !(len(requestJson.Body.MessageId) > 0) {
-			responseJson.Header.Result = "0001"
-			responseJson.Header.Reason = "messageId Is Null!"
+		if !(len(requestJson.Header.MessageId) > 0) {
+			responseJson.Body.Result = "0001"
+			responseJson.Body.Reason = "messageId Is Null!"
 		}
 
 		//判断DisplayNum是否为空
-		if !(len(requestJson.Header.DisplayNum) > 0) {
-			responseJson.Header.Result = "0001"
-			responseJson.Header.Reason = "displayNumber Is Null!"
+		if !(len(requestJson.Body.DisplayNum) > 0) {
+			responseJson.Body.Result = "0001"
+			responseJson.Body.Reason = "displayNumber Is Null!"
 		} else {
 			//判断DisplayNum是否为数字
-			_, error := strconv.Atoi(requestJson.Header.DisplayNum)
+			_, error := strconv.Atoi(requestJson.Body.DisplayNum)
 			if error != nil {
-				responseJson.Header.Result = "0001"
-				responseJson.Header.Reason = "displayNum is error : " + requestJson.Header.DisplayNum
+				responseJson.Body.Result = "0001"
+				responseJson.Body.Reason = "displayNum is error : " + requestJson.Body.DisplayNum
 			}
 		}
 
 		//判断mediaContent是否为空
-		if !(len(requestJson.Header.MediaContent) > 0) {
-			responseJson.Header.Result = "0001"
-			responseJson.Header.Reason = "mediaContent Is Null!"
+		if !(len(requestJson.Body.MediaContent) > 0) {
+			responseJson.Body.Result = "0001"
+			responseJson.Body.Reason = "mediaContent Is Null!"
 		}
 
 		//判断numCode是否为空
-		if !(len(requestJson.Header.NumCode) > 0) {
-			responseJson.Header.Result = "0001"
-			responseJson.Header.Reason = "numCode Is Null!"
+		if !(len(requestJson.Body.NumCode) > 0) {
+			responseJson.Body.Result = "0001"
+			responseJson.Body.Reason = "numCode Is Null!"
 		} else {
 			//判断numCode是否为数字
-			_, error := strconv.Atoi(requestJson.Header.NumCode)
+			_, error := strconv.Atoi(requestJson.Body.NumCode)
 			if error != nil {
-				responseJson.Header.Result = "0001"
-				responseJson.Header.Reason = "numCode must be a number : " + requestJson.Header.NumCode
+				responseJson.Body.Result = "0001"
+				responseJson.Body.Reason = "numCode must be a number : " + requestJson.Body.NumCode
 			}
 		}
 
-		if responseJson.Header.Result == "0000" {
-			if err := publish(*uriSFIVRRequest, *exchangeNameSFIVRRequest, *exchangeTypeSFIVRRequest, *routingKeySFIVRRequest, string(requestJsonStr), *reliableSFIVRRequest); err != nil {
-				responseJson.Header.Result = "9999"
-				responseJson.Header.Reason = "system error"
+		if responseJson.Body.Result == "0000" {
+			requestJson.Body.RequestTime = time.Now().Format("20060102150405")
+			newRequestJsonStr, newRuestJsonErr := json.Marshal(requestJson)
+			checkErrs(newRuestJsonErr)
+			if err := publish(*uriSFIVRRequest, *exchangeNameSFIVRRequest, *exchangeTypeSFIVRRequest, *routingKeySFIVRRequest, string(newRequestJsonStr), *reliableSFIVRRequest); err != nil {
+				responseJson.Body.Result = "9999"
+				responseJson.Body.Reason = "system error"
 				if strings.Contains(err.Error(), "i/o timeout") {
-					responseJson.Header.Reason = "mq connection timeout"
+					responseJson.Body.Reason = "mq connection timeout"
 				}
 				log.Println("rabbitmq publish: ", err)
 			}
@@ -194,11 +207,19 @@ func RequestMQ(w http.ResponseWriter, r *http.Request) {
 		checkErrs(responseJsonErr)
 
 		//将请求异常报文写入日志文件
-		if responseJson.Header.Result != "0000" {
+		if responseJson.Body.Result != "0000" {
 			var requestJsonBufferResponse bytes.Buffer
 			requestJsonBufferResponse.WriteString(time.Now().Format("2006-01-02 15:04:05"))
 			requestJsonBufferResponse.WriteString(" OUT ")
-			requestJsonBufferResponse.WriteString(string(responseJsonStr))
+			requestJsonBufferResponse.WriteString(string(responseJsonStr) + " --- SFIN " + string(b))
+			if(sfmac != ""){
+				requestJsonBufferResponse.WriteString(" --- SFMAC:")
+				requestJsonBufferResponse.WriteString(sfmac)
+			}
+			if(sfmac != ""){
+				requestJsonBufferResponse.WriteString(" --- CQTMAC:")
+				requestJsonBufferResponse.WriteString(cqtmac)
+			}
 			go util.AppendToFile(logFileNameError, requestJsonBufferResponse.String())
 		}
 

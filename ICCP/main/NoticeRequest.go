@@ -8,9 +8,11 @@ import (
 )
 
 func main() {
+	// 顺丰派遣外呼接口
 	http.HandleFunc("/SFIVRRequest", SFIVRRequest.RequestMQ)
 	log.Println("ListenAndServe: ", "SFIVRRequest")
 
+	// 问卷调查通用接口
 	http.HandleFunc("/CTDQUEST", CTDQuest.RequestMQ)
 	log.Println("ListenAndServe: ", "CTDQUEST")
 

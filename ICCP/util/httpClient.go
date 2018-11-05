@@ -42,8 +42,10 @@ func HttpClient(data, url, logFileName string) error {
 
 		var requestJsonBuffer bytes.Buffer
 		requestJsonBuffer.WriteString(time.Now().Format("2006-01-02 15:04:05"))
-		requestJsonBuffer.WriteString(" IN ")
+		requestJsonBuffer.WriteString(" TOMCAT ")
 		requestJsonBuffer.WriteString(responseBodyStr)
+		requestJsonBuffer.WriteString(" --- GOOUT ")
+		requestJsonBuffer.WriteString(data)
 		go AppendToFile(logFileName, requestJsonBuffer.String())
 	}
 

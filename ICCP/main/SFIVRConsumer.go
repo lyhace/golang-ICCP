@@ -26,6 +26,7 @@ var (
 	lifetimeSFIVRConsumer     = flag.Duration("lifetimeSFIVRConsumer", 0*time.Second, "lifetime of process before shutdown (0s=infinite)")
 	//生成要访问的url
 	noticeUrl = "http://sfivrnotice:15407/CTDNOTICE/CTD?mac="
+	//noticeUrl = "http://110.84.228.121:18038/CTDNOTICE/CTD?mac="
 	//消费日志
 	logFileName = "/home/smp/logs/SFIVRConsumer_" + time.Now().Format("2006-01-02") + ".log"
 	//logFileName = "SFIVRPublish_" + time.Now().Format("2006-01-02") + ".log"
@@ -269,7 +270,7 @@ func TimeSleepCtl(timeSleepBean TimeSleepBean) TimeSleepBean {
 					timeSleepStr = strconv.Itoa(baseNum / (nowCountFmt + 30))
 				}
 			}
-		case nowCountFmt < 200:
+		case nowCountFmt < 140:
 			if timeSleepBean.nowCount+15 < timeSleepBean.oldCount {
 				timeSleepStr = strconv.Itoa(baseNum / (nowCountFmt - 10))
 			} else {
@@ -281,7 +282,7 @@ func TimeSleepCtl(timeSleepBean TimeSleepBean) TimeSleepBean {
 				}
 			}
 		default:
-			timeSleepStr = "5000"
+			timeSleepStr = "7000"
 		}
 		//格式化计算后的延迟微秒数
 		timeSleepBean.timeSleep, _ = time.ParseDuration(timeSleepStr + "ns")
